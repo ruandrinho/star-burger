@@ -65,8 +65,13 @@ def product_list_api(request):
 @api_view(['POST'])
 def register_order(request):
     order_from_site = request.data
-    if order_from_site['firstname'] and order_from_site['phonenumber'] and order_from_site['address']\
-            and order_from_site['products']:
+    if 'products' not in order_from_site:
+        return Response({'error': 'Query has no products'})
+    if type(order_from_site['products']) is not list:
+        return Response({'error': 'Products are not list'})
+    if not len(order_from_site['products']):
+        return Response({'error': 'Products list could not be empty'})
+    if order_from_site['firstname'] and order_from_site['phonenumber'] and order_from_site['address']:
         order = Order.objects.create(
             first_name=order_from_site['firstname'],
             last_name=order_from_site['lastname'],

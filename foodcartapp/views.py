@@ -1,8 +1,8 @@
-import json
 from django.http import JsonResponse
 from django.templatetags.static import static
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
+import phonenumbers
 
 
 from .models import Product
@@ -66,24 +66,45 @@ def product_list_api(request):
 def register_order(request):
     order_from_site = request.data
     if 'products' not in order_from_site:
-        return Response({'error': 'Query has no products'})
+        return Response({'error': 'query has no products'})
     if type(order_from_site['products']) is not list:
-        return Response({'error': 'Products are not list'})
+        return Response({'error': 'products are not list'})
     if not len(order_from_site['products']):
-        return Response({'error': 'Products list could not be empty'})
-    if order_from_site['firstname'] and order_from_site['phonenumber'] and order_from_site['address']:
-        order = Order.objects.create(
-            first_name=order_from_site['firstname'],
-            last_name=order_from_site['lastname'],
-            phone_number=order_from_site['phonenumber'],
-            address=order_from_site['address'],
+        return Response({'error': 'products list could not be empty'})
+    for argument in ['firstname', 'lastname', 'phonenumber', 'address']:
+        if argument not in order_from_site:
+            return Response({'error': f'query has no {argument}'})
+        if type(order_from_site[argument]) is not str:
+            return Response({'error': f'{argument} is not string'})
+        if not len(order_from_site[argument]):
+            return Response({'error': f'{argument} could not be empty'})
+    parsed_phonenumber = phonenumbers.parse(order_from_site['phonenumber'], 'RU')
+    if not phonenumbers.is_possible_number(parsed_phonenumber):
+        return Response({'error': 'phonenumber is not possible'})
+    if not phonenumbers.is_valid_number(parsed_phonenumber):
+        return Response({'error': 'phonenumber is not valid'})
+    order = Order.objects.create(
+        first_name=order_from_site['firstname'],
+        last_name=order_from_site['lastname'],
+        phone_number=order_from_site['phonenumber'],
+        address=order_from_site['address'],
+    )
+    for order_item in order_from_site['products']:
+        if 'product' not in order_item:
+            continue
+        if 'quantity' not in order_item:
+            continue
+        try:
+            product = Product.objects.get(id=order_item['product'])
+        except Product.DoesNotExist:
+            order.delete()
+            return Response({'error': 'invalid id of product'})
+        except Product.MultipleObjectsReturned:
+            order.delete()
+            return Response({'error': 'invalid id of product'})
+        OrderItem.objects.create(
+            order=order,
+            product=product,
+            quantity=order_item['quantity']
         )
-        for order_item in order_from_site['products']:
-            if order_item['product'] and order_item['quantity']:
-                product = Product.objects.get(id=order_item['product'])
-                OrderItem.objects.create(
-                    order=order,
-                    product=product,
-                    quantity=order_item['quantity']
-                )
     return Response({'status': 'ok'})

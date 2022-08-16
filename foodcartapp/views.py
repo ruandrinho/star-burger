@@ -2,6 +2,7 @@ from django.http import JsonResponse
 from django.templatetags.static import static
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
+from rest_framework.serializers import ModelSerializer
 import phonenumbers
 
 
@@ -62,49 +63,32 @@ def product_list_api(request):
     })
 
 
+class OrderItemSerializer(ModelSerializer):
+
+    class Meta:
+        model = OrderItem
+        fields = ['product', 'quantity']
+
+
+class OrderSerializer(ModelSerializer):
+    products = OrderItemSerializer(many=True, allow_empty=False)
+
+    class Meta:
+        model = Order
+        fields = ['firstname', 'lastname', 'phonenumber', 'address', 'products']
+
+
 @api_view(['POST'])
 def register_order(request):
-    order_from_site = request.data
-    if 'products' not in order_from_site:
-        return Response({'error': 'query has no products'})
-    if type(order_from_site['products']) is not list:
-        return Response({'error': 'products are not list'})
-    if not len(order_from_site['products']):
-        return Response({'error': 'products list could not be empty'})
-    for argument in ['firstname', 'lastname', 'phonenumber', 'address']:
-        if argument not in order_from_site:
-            return Response({'error': f'query has no {argument}'})
-        if type(order_from_site[argument]) is not str:
-            return Response({'error': f'{argument} is not string'})
-        if not len(order_from_site[argument]):
-            return Response({'error': f'{argument} could not be empty'})
-    parsed_phonenumber = phonenumbers.parse(order_from_site['phonenumber'], 'RU')
-    if not phonenumbers.is_possible_number(parsed_phonenumber):
-        return Response({'error': 'phonenumber is not possible'})
-    if not phonenumbers.is_valid_number(parsed_phonenumber):
-        return Response({'error': 'phonenumber is not valid'})
+    serializer = OrderSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
     order = Order.objects.create(
-        first_name=order_from_site['firstname'],
-        last_name=order_from_site['lastname'],
-        phone_number=order_from_site['phonenumber'],
-        address=order_from_site['address'],
+        firstname=serializer.validated_data['firstname'],
+        lastname=serializer.validated_data['lastname'],
+        phonenumber=serializer.validated_data['phonenumber'],
+        address=serializer.validated_data['address'],
     )
-    for order_item in order_from_site['products']:
-        if 'product' not in order_item:
-            continue
-        if 'quantity' not in order_item:
-            continue
-        try:
-            product = Product.objects.get(id=order_item['product'])
-        except Product.DoesNotExist:
-            order.delete()
-            return Response({'error': 'invalid id of product'})
-        except Product.MultipleObjectsReturned:
-            order.delete()
-            return Response({'error': 'invalid id of product'})
-        OrderItem.objects.create(
-            order=order,
-            product=product,
-            quantity=order_item['quantity']
-        )
+    products_fields = serializer.validated_data['products']
+    order_items = [OrderItem(order=order, **fields) for fields in products_fields]
+    OrderItem.objects.bulk_create(order_items)
     return Response({'status': 'ok'})

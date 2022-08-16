@@ -116,15 +116,15 @@ class OrderItemInline(admin.TabularInline):
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
     search_fields = [
-        'first_name',
-        'last_name',
-        'phone_number',
+        'firstname',
+        'lastname',
+        'phonenumber',
         'address',
     ]
     list_display = [
-        'first_name',
-        'last_name',
-        'phone_number',
+        'firstname',
+        'lastname',
+        'phonenumber',
         'address',
     ]
     inlines = [

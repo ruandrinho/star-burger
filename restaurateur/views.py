@@ -5,7 +5,6 @@ from django.urls import reverse_lazy
 from django.contrib.auth.decorators import user_passes_test
 from django.contrib.auth import authenticate, login
 from django.contrib.auth import views as auth_views
-from django.db.models import Sum, F
 
 
 from foodcartapp.models import Product, Restaurant, Order

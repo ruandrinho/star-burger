@@ -128,7 +128,7 @@ class OrderManager(models.Manager):
     def with_total_cost(self):
         return self.annotate(
             total_cost=models.Sum(
-                models.F('order_items__product__price') * models.F('order_items__quantity')
+                models.F('order_items__price') * models.F('order_items__quantity')
             )
         )
 
@@ -175,6 +175,12 @@ class OrderItem(models.Model):
         on_delete=models.CASCADE,
         related_name='order_items',
         verbose_name='продукт',
+    )
+    price = models.DecimalField(
+        'цена',
+        max_digits=8,
+        decimal_places=2,
+        validators=[MinValueValidator(0)]
     )
     quantity = models.IntegerField(
         'количество',

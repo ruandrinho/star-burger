@@ -125,6 +125,7 @@ class RestaurantMenuItem(models.Model):
 
 
 class OrderManager(models.Manager):
+
     def with_total_cost(self):
         return self.annotate(
             total_cost=models.Sum(

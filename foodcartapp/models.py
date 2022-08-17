@@ -124,6 +124,15 @@ class RestaurantMenuItem(models.Model):
         return f"{self.restaurant.name} - {self.product.name}"
 
 
+class OrderManager(models.Manager):
+    def with_total_cost(self):
+        return self.annotate(
+            total_cost=models.Sum(
+                models.F('order_items__product__price') * models.F('order_items__quantity')
+            )
+        )
+
+
 class Order(models.Model):
     firstname = models.CharField(
         'имя',
@@ -144,6 +153,7 @@ class Order(models.Model):
         max_length=200,
         db_index=True
     )
+    objects = OrderManager()
 
     class Meta:
         verbose_name = 'заказ'

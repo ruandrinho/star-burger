@@ -145,7 +145,8 @@ class Order(models.Model):
         'статус',
         max_length=10,
         choices=STATUS_CHOISES,
-        default='new'
+        default='new',
+        db_index=True
     )
     firstname = models.CharField(
         'имя',
@@ -181,7 +182,7 @@ class OrderItem(models.Model):
         Order,
         related_name='order_items',
         verbose_name="клиент",
-        on_delete=models.CASCADE,
+        on_delete=models.CASCADE
     )
     product = models.ForeignKey(
         Product,

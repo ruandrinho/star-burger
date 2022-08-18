@@ -135,17 +135,26 @@ class OrderManager(models.Manager):
 
 
 class Order(models.Model):
-    STATUS_CHOISES = [
-        ('new', 'Необработанный'),
-        ('cooking', 'Готовится'),
-        ('delivering', 'В доставке'),
-        ('complete', 'Завершён')
-    ]
     status = models.CharField(
         'статус',
         max_length=10,
-        choices=STATUS_CHOISES,
+        choices=[
+            ('new', 'Необработанный'),
+            ('cooking', 'Готовится'),
+            ('delivering', 'В доставке'),
+            ('complete', 'Завершён'),
+        ],
         default='new',
+        db_index=True
+    )
+    payment = models.CharField(
+        'способ оплаты',
+        max_length=4,
+        choices=[
+            ('cash', 'Наличностью'),
+            ('card', 'Электронно'),
+        ],
+        default='cash',
         db_index=True
     )
     firstname = models.CharField(

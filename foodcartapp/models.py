@@ -135,6 +135,18 @@ class OrderManager(models.Manager):
 
 
 class Order(models.Model):
+    STATUS_CHOISES = [
+        ('new', 'Необработанный'),
+        ('cooking', 'Готовится'),
+        ('delivering', 'В доставке'),
+        ('complete', 'Завершён')
+    ]
+    status = models.CharField(
+        'статус',
+        max_length=10,
+        choices=STATUS_CHOISES,
+        default='new'
+    )
     firstname = models.CharField(
         'имя',
         max_length=50,

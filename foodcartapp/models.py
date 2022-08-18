@@ -171,6 +171,23 @@ class Order(models.Model):
         'комментарий',
         blank=True
     )
+    created_at = models.DateTimeField(
+        'создан',
+        auto_now_add=True,
+        db_index=True
+    )
+    called_at = models.DateTimeField(
+        'позвонили клиенту',
+        null=True,
+        blank=True,
+        db_index=True
+    )
+    delivered_at = models.DateTimeField(
+        'доставили клиенту',
+        null=True,
+        blank=True,
+        db_index=True
+    )
     objects = OrderManager()
 
     class Meta:

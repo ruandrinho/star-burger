@@ -59,7 +59,7 @@ pip install -r requirements.txt
 SECRET_KEY=django-insecure-0if40nf4nf93n4
 ```
 
-Для расчёта расстояний между ресторанами и адресами доставки используется API Яндекс Геокодер. Получите ключ API в [https://developer.tech.yandex.ru/](кабинете разработчика) и запишите его в тот же файл `.env`:
+Для расчёта расстояний между ресторанами и адресами доставки используется API Яндекс Геокодер. Получите ключ API в [кабинете разработчика](https://developer.tech.yandex.ru/) и запишите его в тот же файл `.env`:
 ```sh
 YANDEX_GEOCODER_API_KEY=<your_key>
 ```

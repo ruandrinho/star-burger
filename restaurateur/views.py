@@ -5,9 +5,30 @@ from django.urls import reverse_lazy
 from django.contrib.auth.decorators import user_passes_test
 from django.contrib.auth import authenticate, login
 from django.contrib.auth import views as auth_views
+from django.conf import settings
+from geopy import distance
+import requests
 
 
 from foodcartapp.models import Product, Restaurant, Order, RestaurantMenuItem
+
+
+def fetch_coordinates(apikey, address):
+    base_url = 'https://geocode-maps.yandex.ru/1.x'
+    response = requests.get(base_url, params={
+        'geocode': address,
+        'apikey': apikey,
+        'format': 'json',
+    })
+    response.raise_for_status()
+    found_places = response.json()['response']['GeoObjectCollection']['featureMember']
+
+    if not found_places:
+        return None
+
+    most_relevant = found_places[0]
+    lon, lat = most_relevant['GeoObject']['Point']['pos'].split(' ')
+    return lon, lat
 
 
 class Login(forms.Form):
@@ -97,8 +118,7 @@ def view_orders(request):
             restaurants_by_products[item.product.id].add(item.restaurant)
         else:
             restaurants_by_products[item.product.id] = set([item.restaurant])
-    orders = Order.objects.with_total_cost().exclude(status=3).order_by('status').\
-        prefetch_related('order_items')
+    orders = Order.objects.with_total_cost().exclude(status=3).order_by('status').prefetch_related('order_items')
     for order in orders:
         if not order.restaurant:
             possible_restaurants = None
@@ -109,7 +129,19 @@ def view_orders(request):
                     possible_restaurants = possible_restaurants.intersection(
                         restaurants_by_products[order_item.product.id]
                     )
-            order.possible_restaurants = [restaurant.name for restaurant in possible_restaurants]
+            try:
+                order_coordinates = fetch_coordinates(settings.YANDEX_GEOCODER_API_KEY, order.address)
+            except requests.exceptions.RequestException:
+                order_coordinates = None
+            if order_coordinates:
+                order_coordinates = (order_coordinates[1], order_coordinates[0])
+                for restaurant in possible_restaurants:
+                    restaurant_coordinates = fetch_coordinates(settings.YANDEX_GEOCODER_API_KEY, restaurant.address)
+                    restaurant_coordinates = (restaurant_coordinates[1], restaurant_coordinates[0])
+                    restaurant.distance = distance.distance(order_coordinates, restaurant_coordinates).km
+            order.possible_restaurants = [
+                {'name': restaurant.name, 'distance': restaurant.distance} for restaurant in possible_restaurants
+            ]
 
     return render(request, template_name='order_items.html', context={
         'order_items': orders

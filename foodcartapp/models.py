@@ -1,5 +1,7 @@
 from django.db import models
 from django.core.validators import MinValueValidator
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 from phonenumber_field.modelfields import PhoneNumberField
 
 
@@ -135,26 +137,34 @@ class OrderManager(models.Manager):
 
 
 class Order(models.Model):
-    status = models.CharField(
+    STATUS_NEW, STATUS_COOKING, STATUS_DELIVERING, STATUS_COMPLETE = range(4)
+    PAYMENT_CASH, PAYMENT_CARD = range(2)
+    status = models.IntegerField(
         'статус',
-        max_length=10,
         choices=[
-            ('new', 'Необработанный'),
-            ('cooking', 'Готовится'),
-            ('delivering', 'В доставке'),
-            ('complete', 'Завершён'),
+            (STATUS_NEW, 'Необработанный'),
+            (STATUS_COOKING, 'Готовится'),
+            (STATUS_DELIVERING, 'В доставке'),
+            (STATUS_COMPLETE, 'Завершён'),
         ],
-        default='new',
+        default=STATUS_NEW,
         db_index=True
     )
-    payment = models.CharField(
+    restaurant = models.ForeignKey(
+        Restaurant,
+        related_name='orders',
+        verbose_name="назначенный ресторан",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True
+    )
+    payment = models.IntegerField(
         'способ оплаты',
-        max_length=4,
         choices=[
-            ('cash', 'Наличностью'),
-            ('card', 'Электронно'),
+            (PAYMENT_CASH, 'Наличностью'),
+            (PAYMENT_CARD, 'Электронно'),
         ],
-        default='cash',
+        default=PAYMENT_CASH,
         db_index=True
     )
     firstname = models.CharField(
@@ -205,6 +215,13 @@ class Order(models.Model):
 
     def __str__(self):
         return f"{self.firstname} {self.lastname} ({self.address})"
+
+
+@receiver(post_save, sender=Order)
+def update_order_status(sender, instance, **kwargs):
+    if instance.status == instance.STATUS_NEW and instance.restaurant:
+        instance.status = instance.STATUS_COOKING
+        instance.save()
 
 
 class OrderItem(models.Model):

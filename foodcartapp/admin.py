@@ -133,8 +133,8 @@ class OrderAdmin(admin.ModelAdmin):
     ]
 
     def response_post_save_change(self, request, obj):
-        res = super().response_post_save_change(request, obj)
+        super_response = super().response_post_save_change(request, obj)
         if 'next' in request.GET and url_has_allowed_host_and_scheme(request.GET['next'], None):
             return redirect(request.GET['next'])
         else:
-            return res
+            return super_response

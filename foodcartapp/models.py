@@ -167,6 +167,10 @@ class Order(models.Model):
         max_length=200,
         db_index=True
     )
+    comment = models.TextField(
+        'комментарий',
+        blank=True
+    )
     objects = OrderManager()
 
     class Meta:

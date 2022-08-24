@@ -227,8 +227,8 @@ def update_order_status(sender, instance, **kwargs):
 class OrderItem(models.Model):
     order = models.ForeignKey(
         Order,
-        related_name='order_items',
-        verbose_name="клиент",
+        related_name='items',
+        verbose_name="заказ",
         on_delete=models.CASCADE
     )
     product = models.ForeignKey(

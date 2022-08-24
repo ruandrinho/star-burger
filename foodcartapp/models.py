@@ -137,17 +137,17 @@ class OrderManager(models.Manager):
 
 
 class Order(models.Model):
-    STATUS_NEW, STATUS_COOKING, STATUS_DELIVERING, STATUS_COMPLETE = range(4)
-    PAYMENT_CASH, PAYMENT_CARD = range(2)
+    NEW_STATUS, COOKING_STATUS, DELIVERING_STATUS, COMPLETE_STATUS = range(4)
+    CASH_PAYMENT, CARD_PAYMENT = range(2)
     status = models.IntegerField(
         'статус',
         choices=[
-            (STATUS_NEW, 'Необработанный'),
-            (STATUS_COOKING, 'Готовится'),
-            (STATUS_DELIVERING, 'В доставке'),
-            (STATUS_COMPLETE, 'Завершён'),
+            (NEW_STATUS, 'Необработанный'),
+            (COOKING_STATUS, 'Готовится'),
+            (DELIVERING_STATUS, 'В доставке'),
+            (COMPLETE_STATUS, 'Завершён'),
         ],
-        default=STATUS_NEW,
+        default=NEW_STATUS,
         db_index=True
     )
     assigned_restaurant = models.ForeignKey(
@@ -161,8 +161,8 @@ class Order(models.Model):
     payment = models.IntegerField(
         'способ оплаты',
         choices=[
-            (PAYMENT_CASH, 'Наличностью'),
-            (PAYMENT_CARD, 'Электронно'),
+            (CASH_PAYMENT, 'Наличностью'),
+            (CARD_PAYMENT, 'Электронно'),
         ],
         db_index=True
     )

@@ -134,9 +134,12 @@ def view_orders(request):
             )
         except requests.exceptions.RequestException:
             restaurant_coordinates = None
+        # place с пустыми longitude и latitude уже создан в стр. 129
+        # Не запустится, если после try/except restaurant_coordinates is None
         if restaurant_coordinates:
             restaurant_place.longitude, restaurant_place.latitude = restaurant_coordinates
             restaurant_place.save()
+        # Если restaurant_coordinates is None, в словаре будет place без longitude и latitude
         places_by_address[item.restaurant.address] = restaurant_place
 
     orders = Order.objects.with_total_cost().exclude(status=3).order_by('status').prefetch_related('items')

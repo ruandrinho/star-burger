@@ -35,8 +35,8 @@
         <td>{{ item.phonenumber }}</td>
         <td>{{ item.address }}</td>
         <td>{{ item.comment }}</td>
-        <td>{% if item.restaurant %}
-              Готовит {{ item.restaurant.name }}
+        <td>{% if item.assigned_restaurant %}
+              Готовит {{ item.assigned_restaurant.name }}
             {% else %}
               <details>
                 <summary>Могут приготовить</summary>

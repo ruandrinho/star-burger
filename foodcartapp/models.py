@@ -150,7 +150,7 @@ class Order(models.Model):
         default=STATUS_NEW,
         db_index=True
     )
-    restaurant = models.ForeignKey(
+    assigned_restaurant = models.ForeignKey(
         Restaurant,
         related_name='orders',
         verbose_name="назначенный ресторан",

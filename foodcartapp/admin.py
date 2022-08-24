@@ -132,6 +132,11 @@ class OrderAdmin(admin.ModelAdmin):
         OrderItemInline
     ]
 
+    def save_model(self, request, obj, form, change):
+        if obj.status == obj.NEW_STATUS and obj.assigned_restaurant:
+            obj.status = obj.COOKING_STATUS
+        super().save_model(request, obj, form, change)
+
     def response_post_save_change(self, request, obj):
         super_response = super().response_post_save_change(request, obj)
         if 'next' in request.GET and url_has_allowed_host_and_scheme(request.GET['next'], None):

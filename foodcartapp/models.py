@@ -164,6 +164,7 @@ class Order(models.Model):
             (CASH_PAYMENT, 'Наличностью'),
             (CARD_PAYMENT, 'Электронно'),
         ],
+        null=True,
         db_index=True
     )
     firstname = models.CharField(
@@ -214,11 +215,6 @@ class Order(models.Model):
 
     def __str__(self):
         return f"{self.firstname} {self.lastname} ({self.address})"
-
-    def save_model(self, request, obj, form, change):
-        if obj.status == obj.NEW_STATUS and obj.assigned_restaurant:
-            obj.status = obj.COOKING_STATUS
-        super().save_model(request, obj, form, change)
 
 
 class OrderItem(models.Model):

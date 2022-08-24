@@ -215,12 +215,10 @@ class Order(models.Model):
     def __str__(self):
         return f"{self.firstname} {self.lastname} ({self.address})"
 
-
-@receiver(post_save, sender=Order)
-def update_order_status(sender, instance, **kwargs):
-    if instance.status == instance.STATUS_NEW and instance.restaurant:
-        instance.status = instance.STATUS_COOKING
-        instance.save()
+    def save_model(self, request, obj, form, change):
+        if obj.status == obj.NEW_STATUS and obj.assigned_restaurant:
+            obj.status = obj.COOKING_STATUS
+        super().save_model(request, obj, form, change)
 
 
 class OrderItem(models.Model):

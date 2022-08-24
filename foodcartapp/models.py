@@ -164,7 +164,6 @@ class Order(models.Model):
             (PAYMENT_CASH, 'Наличностью'),
             (PAYMENT_CARD, 'Электронно'),
         ],
-        default=PAYMENT_CASH,
         db_index=True
     )
     firstname = models.CharField(

@@ -121,19 +121,21 @@ def view_orders(request):
             restaurants_by_products[item.product.id].add(item.restaurant)
         else:
             restaurants_by_products[item.product.id] = set([item.restaurant])
-        if item.restaurant.id not in restaurant_places:
-            restaurant_place, created = Place.objects.get_or_create(address=item.restaurant.address)
-            if created:
-                try:
-                    restaurant_coordinates = fetch_coordinates(
-                        settings.YANDEX_GEOCODER_API_KEY,
-                        item.restaurant.address
-                    )
-                except requests.exceptions.RequestException:
-                    restaurant_coordinates = None
-                if restaurant_coordinates:
-                    restaurant_place.longitude, restaurant_place.latitude = restaurant_coordinates
-                    restaurant_place.save()
+        if item.restaurant.id in restaurant_places:
+            continue
+        restaurant_place, created = Place.objects.get_or_create(address=item.restaurant.address)
+        if not created:
+            restaurant_places[item.restaurant.id] = restaurant_place
+        try:
+            restaurant_coordinates = fetch_coordinates(
+                settings.YANDEX_GEOCODER_API_KEY,
+                item.restaurant.address
+            )
+        except requests.exceptions.RequestException:
+            restaurant_coordinates = None
+        if restaurant_coordinates:
+            restaurant_place.longitude, restaurant_place.latitude = restaurant_coordinates
+            restaurant_place.save()
             restaurant_places[item.restaurant.id] = restaurant_place
 
     orders = Order.objects.with_total_cost().exclude(status=3).order_by('status').prefetch_related('order_items')

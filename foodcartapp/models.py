@@ -131,7 +131,7 @@ class OrderManager(models.Manager):
     def with_total_cost(self):
         return self.annotate(
             total_cost=models.Sum(
-                models.F('order_items__price') * models.F('order_items__quantity')
+                models.F('items__price') * models.F('items__quantity')
             )
         )
 

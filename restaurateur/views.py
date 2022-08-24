@@ -114,18 +114,19 @@ def view_restaurants(request):
 @user_passes_test(is_manager, login_url='restaurateur:login')
 def view_orders(request):
     restaurants_by_products = {}
-    restaurant_places = {}
+
+    places_by_address = {}
+    for place in Place.objects.all():
+        places_by_address[place.address] = place
 
     for item in RestaurantMenuItem.objects.filter(availability=True):
         if item.product.id in restaurants_by_products:
             restaurants_by_products[item.product.id].add(item.restaurant)
         else:
             restaurants_by_products[item.product.id] = set([item.restaurant])
-        if item.restaurant.id in restaurant_places:
+        if item.restaurant.address in places_by_address:
             continue
-        restaurant_place, created = Place.objects.get_or_create(address=item.restaurant.address)
-        if not created:
-            restaurant_places[item.restaurant.id] = restaurant_place
+        restaurant_place = Place.objects.create(address=item.restaurant.address)
         try:
             restaurant_coordinates = fetch_coordinates(
                 settings.YANDEX_GEOCODER_API_KEY,
@@ -136,22 +137,24 @@ def view_orders(request):
         if restaurant_coordinates:
             restaurant_place.longitude, restaurant_place.latitude = restaurant_coordinates
             restaurant_place.save()
-            restaurant_places[item.restaurant.id] = restaurant_place
+        places_by_address[item.restaurant.address] = restaurant_place
 
-    orders = Order.objects.with_total_cost().exclude(status=3).order_by('status').prefetch_related('order_items')
+    orders = Order.objects.with_total_cost().exclude(status=3).order_by('status').prefetch_related('items')
     for order in orders:
-        if order.restaurant:
+        if order.assigned_restaurant:
             continue
         possible_restaurants = None
-        for order_item in order.order_items.all():
+        for item in order.items.all():
             if possible_restaurants is None:
-                possible_restaurants = restaurants_by_products[order_item.product.id]
+                possible_restaurants = restaurants_by_products[item.product.id]
             else:
                 possible_restaurants = possible_restaurants.intersection(
-                    restaurants_by_products[order_item.product.id]
+                    restaurants_by_products[item.product.id]
                 )
-        order_place, created = Place.objects.get_or_create(address=order.address)
-        if created:
+        if order.address in places_by_address:
+            order_place = places_by_address[order.address]
+        else:
+            order_place = Place.objects.create(address=order.address)
             try:
                 order_coordinates = fetch_coordinates(settings.YANDEX_GEOCODER_API_KEY, order.address)
             except requests.exceptions.RequestException:
@@ -159,10 +162,11 @@ def view_orders(request):
             if order_coordinates:
                 order_place.longitude, order_place.latitude = order_coordinates
                 order_place.save()
+            places_by_address[order.address] = order_place
         if order_place.longitude and order_place.latitude:
             order_lat_and_lon = (order_place.latitude, order_place.longitude)
             for restaurant in possible_restaurants:
-                restaurant_place = restaurant_places[restaurant.id]
+                restaurant_place = places_by_address[restaurant.address]
                 if restaurant_place.longitude and restaurant_place.latitude:
                     restaurant_lat_and_lon = (restaurant_place.latitude, restaurant_place.longitude)
                     restaurant.distance = distance.distance(order_lat_and_lon, restaurant_lat_and_lon).km

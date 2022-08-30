@@ -7,6 +7,7 @@ from django.contrib.auth import authenticate, login
 from django.contrib.auth import views as auth_views
 from django.conf import settings
 from geopy import distance
+from collections import defaultdict
 import requests
 
 
@@ -113,17 +114,19 @@ def view_restaurants(request):
 
 @user_passes_test(is_manager, login_url='restaurateur:login')
 def view_orders(request):
-    restaurants_by_products = {}
+    restaurants_by_products = defaultdict(set)
 
+    unready_orders = Order.objects.with_total_cost().exclude(status=3).order_by('status').prefetch_related('items')
+    restaurants = Restaurant.objects.all()
+
+    addresses = [restaurant.address for restaurant in restaurants]
+    addresses.extend([order.address for order in unready_orders])
     places_by_address = {}
-    for place in Place.objects.all():
+    for place in Place.objects.filter(address__in=addresses):
         places_by_address[place.address] = place
 
     for item in RestaurantMenuItem.objects.filter(availability=True):
-        if item.product.id in restaurants_by_products:
-            restaurants_by_products[item.product.id].add(item.restaurant)
-        else:
-            restaurants_by_products[item.product.id] = set([item.restaurant])
+        restaurants_by_products[item.product.id].add(item.restaurant)
         if item.restaurant.address in places_by_address:
             continue
         restaurant_place = Place.objects.create(address=item.restaurant.address)
@@ -134,21 +137,17 @@ def view_orders(request):
             )
         except requests.exceptions.RequestException:
             restaurant_coordinates = None
-        # place с пустыми longitude и latitude уже создан в стр. 129
-        # Не запустится, если после try/except restaurant_coordinates is None
         if restaurant_coordinates:
             restaurant_place.longitude, restaurant_place.latitude = restaurant_coordinates
             restaurant_place.save()
-        # Если restaurant_coordinates is None, в словаре будет place без longitude и latitude
         places_by_address[item.restaurant.address] = restaurant_place
 
-    orders = Order.objects.with_total_cost().exclude(status=3).order_by('status').prefetch_related('items')
-    for order in orders:
+    for order in unready_orders:
         if order.assigned_restaurant:
             continue
         possible_restaurants = None
         for item in order.items.all():
-            if possible_restaurants is None:
+            if not possible_restaurants:
                 possible_restaurants = restaurants_by_products[item.product.id]
             else:
                 possible_restaurants = possible_restaurants.intersection(
@@ -166,17 +165,18 @@ def view_orders(request):
                 order_place.longitude, order_place.latitude = order_coordinates
                 order_place.save()
             places_by_address[order.address] = order_place
-        if order_place.longitude and order_place.latitude:
-            order_lat_and_lon = (order_place.latitude, order_place.longitude)
-            for restaurant in possible_restaurants:
-                restaurant_place = places_by_address[restaurant.address]
-                if restaurant_place.longitude and restaurant_place.latitude:
-                    restaurant_lat_and_lon = (restaurant_place.latitude, restaurant_place.longitude)
-                    restaurant.distance = distance.distance(order_lat_and_lon, restaurant_lat_and_lon).km
+        if not order_place.longitude or not order_place.latitude:
+            continue
+        order_lat_and_lon = (order_place.latitude, order_place.longitude)
+        for restaurant in possible_restaurants:
+            restaurant_place = places_by_address[restaurant.address]
+            if restaurant_place.longitude and restaurant_place.latitude:
+                restaurant_lat_and_lon = (restaurant_place.latitude, restaurant_place.longitude)
+                restaurant.distance = distance.distance(order_lat_and_lon, restaurant_lat_and_lon).km
         order.possible_restaurants = [
             {'name': restaurant.name, 'distance': restaurant.distance} for restaurant in possible_restaurants
         ]
 
     return render(request, template_name='order_items.html', context={
-        'order_items': orders
+        'order_items': unready_orders
     })

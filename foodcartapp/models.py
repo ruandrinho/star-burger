@@ -1,8 +1,7 @@
 from django.db import models
 from django.core.validators import MinValueValidator
-from django.db.models.signals import post_save
-from django.dispatch import receiver
 from phonenumber_field.modelfields import PhoneNumberField
+from collections import defaultdict
 
 
 class Restaurant(models.Model):
@@ -126,7 +125,23 @@ class RestaurantMenuItem(models.Model):
         return f"{self.restaurant.name} - {self.product.name}"
 
 
-class OrderManager(models.Manager):
+class OrderQuerySet(models.QuerySet):
+    def with_possible_restaurants(self):
+        restaurants_by_products = defaultdict(set)
+        for item in RestaurantMenuItem.objects.filter(availability=True):
+            restaurants_by_products[item.product.id].add(item.restaurant)
+        for order in self:
+            if order.assigned_restaurant:
+                continue
+            order.possible_restaurants = None
+            for item in order.items.all():
+                if not order.possible_restaurants:
+                    order.possible_restaurants = restaurants_by_products[item.product.id]
+                else:
+                    order.possible_restaurants = order.possible_restaurants.intersection(
+                        restaurants_by_products[item.product.id]
+                    )
+        return self
 
     def with_total_cost(self):
         return self.annotate(
@@ -207,7 +222,7 @@ class Order(models.Model):
         blank=True,
         db_index=True
     )
-    objects = OrderManager()
+    objects = OrderQuerySet().as_manager()
 
     class Meta:
         verbose_name = 'заказ'

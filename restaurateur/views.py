@@ -7,7 +7,6 @@ from django.contrib.auth import authenticate, login
 from django.contrib.auth import views as auth_views
 from django.conf import settings
 from geopy import distance
-from collections import defaultdict
 from geocache.views import fetch_coordinates
 import requests
 
@@ -97,9 +96,7 @@ def view_restaurants(request):
 
 @user_passes_test(is_manager, login_url='restaurateur:login')
 def view_orders(request):
-    restaurants_by_products = defaultdict(set)
-
-    unready_orders = Order.objects.with_total_cost().exclude(status=3).order_by('status').prefetch_related('items')
+    unready_orders = Order.objects.with_total_cost().exclude(status=3).order_by('status').with_possible_restaurants()
     restaurants = Restaurant.objects.all()
 
     addresses = [restaurant.address for restaurant in restaurants]
@@ -108,34 +105,25 @@ def view_orders(request):
     for place in Place.objects.filter(address__in=addresses):
         places_by_address[place.address] = place
 
-    for item in RestaurantMenuItem.objects.filter(availability=True):
-        restaurants_by_products[item.product.id].add(item.restaurant)
-        if item.restaurant.address in places_by_address:
+    for restaurant in restaurants:
+        if restaurant.address in places_by_address:
             continue
-        restaurant_place = Place.objects.create(address=item.restaurant.address)
+        restaurant_place = Place.objects.create(address=restaurant.address)
         try:
             restaurant_coordinates = fetch_coordinates(
                 settings.YANDEX_GEOCODER_API_KEY,
-                item.restaurant.address
+                restaurant.address
             )
         except requests.exceptions.RequestException:
             restaurant_coordinates = None
         if restaurant_coordinates:
             restaurant_place.longitude, restaurant_place.latitude = restaurant_coordinates
             restaurant_place.save()
-        places_by_address[item.restaurant.address] = restaurant_place
+        places_by_address[restaurant.address] = restaurant_place
 
     for order in unready_orders:
         if order.assigned_restaurant:
             continue
-        possible_restaurants = None
-        for item in order.items.all():
-            if not possible_restaurants:
-                possible_restaurants = restaurants_by_products[item.product.id]
-            else:
-                possible_restaurants = possible_restaurants.intersection(
-                    restaurants_by_products[item.product.id]
-                )
         if order.address in places_by_address:
             order_place = places_by_address[order.address]
         else:
@@ -151,13 +139,13 @@ def view_orders(request):
         if not order_place.longitude or not order_place.latitude:
             continue
         order_lat_and_lon = (order_place.latitude, order_place.longitude)
-        for restaurant in possible_restaurants:
+        for restaurant in order.possible_restaurants:
             restaurant_place = places_by_address[restaurant.address]
             if restaurant_place.longitude and restaurant_place.latitude:
                 restaurant_lat_and_lon = (restaurant_place.latitude, restaurant_place.longitude)
                 restaurant.distance = distance.distance(order_lat_and_lon, restaurant_lat_and_lon).km
         order.possible_restaurants = [
-            {'name': restaurant.name, 'distance': restaurant.distance} for restaurant in possible_restaurants
+            {'name': restaurant.name, 'distance': restaurant.distance} for restaurant in order.possible_restaurants
         ]
 
     return render(request, template_name='order_items.html', context={

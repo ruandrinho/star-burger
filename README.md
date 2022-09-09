@@ -59,9 +59,15 @@ pip install -r requirements.txt
 SECRET_KEY=django-insecure-0if40nf4nf93n4
 ```
 
-Для расчёта расстояний между ресторанами и адресами доставки используется API Яндекс Геокодер. Получите ключ API в [кабинете разработчика](https://developer.tech.yandex.ru/) и запишите его в тот же файл `.env`:
+Для расчёта расстояний между ресторанами и адресами доставки используется API Яндекс Геокодер. Получите ключ API в [кабинете разработчика](https://developer.tech.yandex.ru/) и запишите его в файл `.env`:
 ```sh
 YANDEX_GEOCODER_API_KEY=<your_key>
+```
+
+Для логирования ошибок используется сервис [Rollbar](https://rollbar.com). Создайте проект, получите ключ API и запишите его в файл `.env`. Так же отдельной настройкой укажите environment (например, `development` или `production`):
+```sh
+ROLLBAR_API_KEY=<your_key>
+ROLLBAR_ENVIRONMENT=development
 ```
 
 Создайте файл базы данных SQLite и отмигрируйте её следующей командой:
@@ -152,6 +158,8 @@ Parcel будет следить за файлами в каталоге `bundle
 - `DEBUG` — дебаг-режим. Поставьте `False`.
 - `SECRET_KEY` — секретный ключ проекта. Он отвечает за шифрование на сайте. Например, им зашифрованы все пароли на вашем сайте.
 - `YANDEX_GEOCODER_API_KEY` — ключ API сервиса Яндекс Геокодер. Требуется для расчёта расстояний между ресторанами и клиентами.
+- `ROLLBAR_API_KEY` — люч API сервиса Rollbar. Требуется для логирования ошибок.
+- `ROLLBAR_ENVIRONMENT` — текущая среда для фильтрации ошибок (например, `production`)
 - `ALLOWED_HOSTS` — [см. документацию Django](https://docs.djangoproject.com/en/3.1/ref/settings/#allowed-hosts)
 
 ## Цели проекта

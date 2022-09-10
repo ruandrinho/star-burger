@@ -70,7 +70,13 @@ ROLLBAR_API_KEY=<your_key>
 ROLLBAR_ENVIRONMENT=development
 ```
 
-Создайте файл базы данных SQLite и отмигрируйте её следующей командой:
+Создайте базу данных PostgreSQL. Запишите в файл `.env` данные для доступа к ней в формате:
+
+```sh
+POSTGRES_DATABASE_URL=USER:PASSWORD@HOST:PORT/NAME
+```
+
+Отмигрируйте базу данных следующей командой:
 
 ```sh
 python manage.py migrate
@@ -161,6 +167,7 @@ Parcel будет следить за файлами в каталоге `bundle
 - `ROLLBAR_API_KEY` — люч API сервиса Rollbar. Требуется для логирования ошибок.
 - `ROLLBAR_ENVIRONMENT` — текущая среда для фильтрации ошибок (например, `production`)
 - `ALLOWED_HOSTS` — [см. документацию Django](https://docs.djangoproject.com/en/3.1/ref/settings/#allowed-hosts)
+- `POSTGRES_DATABASE_URL` — данные для доступа к базе данных PostgreSQL в формате `USER:PASSWORD@HOST:PORT/NAME`
 
 ## Цели проекта
 

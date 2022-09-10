@@ -150,7 +150,6 @@ Parcel будет следить за файлами в каталоге `bundle
 
 **Сбросьте кэш браузера <kbd>Ctrl-F5</kbd>.** Браузер при любой возможности старается кэшировать файлы статики: CSS, картинки и js-код. Порой это приводит к странному поведению сайта, когда код уже давно изменился, но браузер этого не замечает и продолжает использовать старую закэшированную версию. В норме Parcel решает эту проблему самостоятельно. Он следит за пересборкой фронтенда и предупреждает JS-код в браузере о необходимости подтянуть свежий код. Но если вдруг что-то у вас идёт не так, то начните ремонт со сброса браузерного кэша, жмите <kbd>Ctrl-F5</kbd>.
 
-
 ## Как запустить prod-версию сайта
 
 Собрать фронтенд:
@@ -168,6 +167,50 @@ Parcel будет следить за файлами в каталоге `bundle
 - `ROLLBAR_ENVIRONMENT` — текущая среда для фильтрации ошибок (например, `production`)
 - `ALLOWED_HOSTS` — [см. документацию Django](https://docs.djangoproject.com/en/3.1/ref/settings/#allowed-hosts)
 - `POSTGRES_DATABASE_URL` — данные для доступа к базе данных PostgreSQL в формате `USER:PASSWORD@HOST:PORT/NAME`
+
+## Как выполнить быстрый deploy сайта на сервере
+
+Создайте в каталоге пользователя bash-скрипт (например, `deploy_starburger.sh`) и запишите в него:
+
+```sh
+#!/bin/bash
+set -e
+cd <путь к директории проекта>
+git pull origin master
+. venv/bin/activate
+pip install -r requirements.txt
+npm ci --dev
+./node_modules/.bin/parcel build bundles-src/index.js --dist-dir bundles --public-url="./"
+python3 manage.py collectstatic --noinput
+python3 manage.py migrate --noinput
+systemctl restart starburger
+systemctl reload nginx
+curl -H "X-Rollbar-Access-Token: <ключ API Rollbar>" -H "Content-Type: application/json" -X POST 'https://api.rollbar.com/api/1/deploy' -d '{"environment": "production", "revision": "$(git rev-parse --short HEAD)", "rollbar_name": "<имя пользователя Rollbar>", "local_username": "<локальное имя пользователя>", "comment": "—", "status": "succeeded"}'
+echo -e "\n--- Successful deploy ---\n"
+```
+
+Системная служба `starburger` должна быть уже добавлена с таким содержимым:
+```sh
+[Unit]
+Description=Starburger
+After=postgresql.service
+Requires=postgresql.service
+
+[Service]
+Type=simple
+WorkingDirectory=<путь к директории проекта>
+ExecStart=<путь к директории проекта>/venv/bin/gunicorn -w 3 -b 127.0.0.1:8000 star_burger.wsgi:application
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Запуск скрипта деплоя:
+
+```sh
+./deploy_starburger.sh
+```
 
 ## Цели проекта
 

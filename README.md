@@ -172,24 +172,19 @@ Parcel будет следить за файлами в каталоге `bundle
 
 ## Как выполнить быстрый deploy сайта на сервере
 
-Создайте в каталоге пользователя bash-скрипт (например, `deploy_starburger.sh`) и запишите в него:
+Откройте файл `deploy_starburger.sh` и поменяйте третью строку, указав путь к директории с проектом, например:
 
 ```sh
-#!/bin/bash
-set -e
-cd <путь к директории проекта>
-git pull origin master
-. venv/bin/activate
-pip install -r requirements.txt
-npm ci --dev
-./node_modules/.bin/parcel build bundles-src/index.js --dist-dir bundles --public-url="./"
-python3 manage.py collectstatic --noinput
-python3 manage.py migrate --noinput
-systemctl restart starburger
-systemctl reload nginx
-curl -H "X-Rollbar-Access-Token: <ключ API Rollbar>" -H "Content-Type: application/json" -X POST 'https://api.rollbar.com/api/1/deploy' -d '{"environment": "production", "revision": "$(git rev-parse --short HEAD)", "rollbar_name": "<имя пользователя Rollbar>", "local_username": "<локальное имя пользователя>", "comment": "—", "status": "succeeded"}'
-echo -e "\n--- Successful deploy ---\n"
+cd /opt/star-burger
 ```
+
+Запустите скрипт деплоя:
+
+```sh
+./deploy_starburger.sh
+```
+
+Скрипт можно перенести в любую другую директорию на сервере для удобства.
 
 Системная служба `starburger` должна быть уже добавлена с таким содержимым:
 ```sh
@@ -206,12 +201,6 @@ Restart=always
 
 [Install]
 WantedBy=multi-user.target
-```
-
-Запуск скрипта деплоя:
-
-```sh
-./deploy_starburger.sh
 ```
 
 ## Цели проекта

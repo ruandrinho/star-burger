@@ -66,7 +66,7 @@ SECRET_KEY=django-insecure-0if40nf4nf93n4
 YANDEX_GEOCODER_API_KEY=<your_key>
 ```
 
-Для логирования ошибок используется сервис [Rollbar](https://rollbar.com). Создайте проект, получите ключ API и запишите его в файл `.env`. Так же отдельной настройкой укажите environment (например, `development`):
+Для логирования ошибок используется сервис [Rollbar](https://rollbar.com). В режиме разработки этот пункт можно пропустить. Создайте проект, получите ключ API и запишите его в файл `.env`. Так же отдельной настройкой укажите environment (например, `development`):
 ```sh
 ROLLBAR_API_KEY=<your_key>
 ROLLBAR_ENVIRONMENT=development

@@ -134,4 +134,5 @@ ROLLBAR = {
     'access_token': env('ROLLBAR_API_KEY'),
     'environment': env('ROLLBAR_ENVIRONMENT'),
     'root': BASE_DIR,
+    'enabled': bool(env.str('ROLLBAR_API_KEY', default=''))
 }
